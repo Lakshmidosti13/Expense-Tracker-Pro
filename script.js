@@ -31,7 +31,6 @@ let transactions = JSON.parse(localStorage.getItem("transactions")) || [];
 
 // Load Data
 displayTransactions();
-
 updateSummary();
 
 // Form Submit
@@ -71,9 +70,7 @@ form.addEventListener("submit", function (e) {
 
     saveTransactions();
 
-    displayTransactions();
-
-    updateSummary();
+    refreshUI();
 
     form.reset();
 
@@ -88,7 +85,6 @@ function displayTransactions(data = transactions) {
         list.innerHTML = "<p>No Transactions Found</p>";
 
         return;
-
     }
 
     data.forEach(function (transaction) {
@@ -171,9 +167,7 @@ function deleteTransaction(id){
 
     saveTransactions();
 
-    displayTransactions();
-
-    updateSummary();
+    refreshUI();
 
 }
 
@@ -209,9 +203,7 @@ function editTransaction(id){
 
     saveTransactions();
 
-    displayTransactions();
-
-    updateSummary();
+    refreshUI();
 
 }
 
@@ -226,110 +218,90 @@ function saveTransactions(){
     );
 
 }
-// ===============================
-// Search Functionality
-// ===============================
+function updateSummary() {
 
-search.addEventListener("keyup", function () {
+    let totalIncome = 0;
+    let totalExpense = 0;
 
-    const keyword = search.value.toLowerCase().trim();
+    transactions.forEach(function(transaction){
 
-    const filteredTransactions = transactions.filter(function (transaction) {
-
-        return (
-            transaction.description.toLowerCase().includes(keyword) ||
-            transaction.category.toLowerCase().includes(keyword)
-        );
+        if(transaction.type === "income"){
+            totalIncome += transaction.amount;
+        }else{
+            totalExpense += transaction.amount;
+        }
 
     });
 
-    displayTransactions(filteredTransactions);
+    const totalBalance = totalIncome - totalExpense;
 
-});
+    balance.innerText = "₹" + totalBalance;
+    income.innerText = "₹" + totalIncome;
+    expense.innerText = "₹" + totalExpense;
 
-// ===============================
-// Filter Functionality
-// ===============================
+}
 
-filter.addEventListener("change", function () {
+function deleteTransaction(id){
 
-    const value = filter.value;
+    transactions = transactions.filter(function(transaction){
 
-    if (value === "all") {
+        return transaction.id !== id;
 
-        displayTransactions(transactions);
+    });
 
-    } else {
+    saveTransactions();
 
-        const filteredTransactions = transactions.filter(function (transaction) {
+    refreshUI();
 
-            return transaction.type === value;
+}
 
-        });
+function editTransaction(id){
 
-        displayTransactions(filteredTransactions);
+    const transaction = transactions.find(function(item){
+
+        return item.id === id;
+
+    });
+
+    if(!transaction){
+
+        return;
 
     }
 
-});
+    text.value = transaction.description;
 
-// ===============================
-// Dark Mode
-// ===============================
+    amount.value = transaction.amount;
 
-themeBtn.addEventListener("click", function () {
+    date.value = transaction.date;
 
-    document.body.classList.toggle("dark");
+    category.value = transaction.category;
 
-    if (document.body.classList.contains("dark")) {
+    type.value = transaction.type;
 
-        themeBtn.innerText = "☀️ Light Mode";
+    transactions = transactions.filter(function(item){
 
-    } else {
-
-        themeBtn.innerText = "🌙 Dark Mode";
-
-    }
-
-});
-
-// ===============================
-// Export CSV
-// ===============================
-
-exportCSV.addEventListener("click", function () {
-
-    let csv =
-        "Description,Amount,Category,Date,Type\n";
-
-    transactions.forEach(function (transaction) {
-
-        csv +=
-            transaction.description + "," +
-            transaction.amount + "," +
-            transaction.category + "," +
-            transaction.date + "," +
-            transaction.type + "\n";
+        return item.id !== id;
 
     });
 
-    const blob = new Blob([csv], {
-        type: "text/csv"
-    });
+    saveTransactions();
 
-    const url = window.URL.createObjectURL(blob);
+    refreshUI();
 
-    const a = document.createElement("a");
+}
 
-    a.href = url;
+function saveTransactions(){
 
-    a.download = "transactions.csv";
+    localStorage.setItem(
 
-    a.click();
+        "transactions",
 
-    window.URL.revokeObjectURL(url);
+        JSON.stringify(transactions)
 
-});
+    );
+
+}
 // ===============================
 // Expense Pie Chart
 // ===============================
@@ -374,6 +346,11 @@ function updateChart() {
 
     }
 
+    // Don't create a chart if there is no expense data
+    if (labels.length === 0) {
+        return;
+    }
+
     expenseChart = new Chart(ctx, {
 
         type: "pie",
@@ -395,7 +372,9 @@ function updateChart() {
                     "#1abc9c",
                     "#34495e",
                     "#e67e22"
-                ]
+                ],
+
+                borderWidth: 1
 
             }]
 
@@ -404,6 +383,8 @@ function updateChart() {
         options: {
 
             responsive: true,
+
+            maintainAspectRatio: false,
 
             plugins: {
 
@@ -421,7 +402,9 @@ function updateChart() {
 
 }
 
-
+// ===============================
+// Refresh UI
+// ===============================
 
 function refreshUI() {
 
@@ -433,6 +416,5 @@ function refreshUI() {
 
 }
 
-
-
+// Initial Load
 refreshUI();
